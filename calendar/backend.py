@@ -1,8 +1,6 @@
-#!/usr/bin/env python3
-
 import sqlite3
-from passlib.hash import pbkdf2_sha256 as pbkdf2
 from typing import List, Tuple
+from passlib.hash import pbkdf2_sha256 as pbkdf2
 
 # Custom imports
 from classes import User, Calendar, Event
@@ -35,22 +33,25 @@ class Database:
     def _get_result(self):
         ''' Return first cursor result. '''
         if self.connection and self.cursor:
-            self.connection.commit()
             return self.cursor.fetchone()
-        
+
     def _get_all_results(self):
         ''' Return all cursor results. '''
         if self.connection and self.cursor:
-            self.connection.commit()
             return self.cursor.fetchall()
 
-    def _get_lastrowid(self) -> int:
-        if self.cursor:
-            self.cursor.lastrowid
+    def _get_lastrowid(self):
+        return self.cursor.lastrowid
 
-    def _execute(self, sql_template, sql_tuple=None) -> None:
-        ''' Shortcut for self.cursor.execute(). '''
+    def _execute(self, sql_template, sql_tuple) -> None:
+        ''' Shortcut for self.cursor.execute() and self.cursor.commit() '''
         self.cursor.execute(sql_template, sql_tuple)
+        self.cursor.commit()
+
+    def _executemany(self, sql_template, sql_tuple_list) -> None:
+        ''' Shortcut for self.cursor.executemany() and self.cursor.commit() '''
+        self.cursor.executemany(sql_template, sql_tuple_list)
+        self.cursor.commit()
 
     def _close_all(self) -> None:
         ''' Close Cursor and Connection objects. '''
@@ -60,10 +61,22 @@ class Database:
             self.connection.close()
 
     # Select methods
-    def get_user(self, user_id: int) -> User:
+    def verify_password(self, password, pw_hash) -> bool:
+        ''' Verifies password matches the password hash. '''
+        return pbkdf2.verify(password, pw_hash)
+
+    def get_user(self, username: str) -> User:
+        '''Returns a User object for a given username. '''
+        username: Tuple = (username,)
+        self._execute("SELECT * FROM users WHERE username = ?", username)
+        user = self._get_result()
+
+        return User(*user)
+
+    def get_user_by_id(self, user_id: int) -> User:
         '''Returns a User object for a given user_id. '''
         uid: Tuple = (user_id,)
-        self._execute("SELECT * FROM users WHERE user_id = ?", uid)
+        self._execute("SELECT * FROM users WHERE username = ?", uid)
         user = self._get_result()
 
         return User(*user)
@@ -76,7 +89,7 @@ class Database:
 
         return Calendar(*calendar)
 
-    def get_events_by_calendar(self, calendar_id: int) -> List[Event]:
+    def get_all_events(self, calendar_id: int) -> List[Event]:
         ''' Return list of Event objects that match the provided calendar_id. '''
         cid: Tuple = (calendar_id,)
         self._execute("SELECT * FROM events WHERE calendar_id = ?", cid)
@@ -103,21 +116,56 @@ class Database:
         self._execute(new_user_template, new_user)
         return self._get_lastrowid()
 
-    def new_event(self, calendar_id, title, month, day, year=None, notes=None, private=None):
+    def new_event(self, calendar_id, title, month, day,
+                  year=None, notes=None, private=None):
         ''' Inserts a new Event into the events table. Returns event_id of the new Event. '''
-        new_event_template = "INSERT INTO events (calendar_id, title, month, day, year, notes, private) \
-                              VALUES(?,?,?,?,?,?,?)"
+        new_event_template = "INSERT INTO events \
+                              (calendar_id, title, month, day, year, notes, private) \
+                              VALUES (?,?,?,?,?,?,?)"
         new_event: Tuple = (calendar_id, title, month, day, year, notes, private)
 
         self._execute(new_event_template, new_event)
         return self._get_lastrowid()
-        
-    # Update methods
-    def update_user(self):
-        pass
 
-    def update_event(self, event_id):
-        #update_event = "UPDATE events
-        #                SET event"
-        #event_tuple = (event.id, event.month, event.day, event.year, event.notes)
-        pass
+    # Update methods
+    #def update_user(self):
+        #''' Update user attributesa in the database. '''
+
+    def update_event(self, event: Event, title=None, month=None,
+                     day=None, year=None, notes=None, private=0) -> None:
+        ''' Takes an event and any event field updates, and updates the event
+            in the database.'''
+        e = event
+        eid = event.id
+        updates: List[Tuple] = []
+        delta = lambda x, y: x != y
+        add_update = lambda item, value: updates.append((item, value, eid))
+
+        # For any field that has a non-default value, add_update adds a tuple
+        # of the field and the new value, as well as the event_id. Only added
+        # if the original value has changed
+
+        # There's probably a better way to iterate through these
+        if delta(e.title, title):
+            add_update('title', title)
+        if delta(e.month, month):
+            add_update('month', month)
+        if delta(e.day, day):
+            add_update('day', day)
+        if delta(e.year, year):
+            add_update('year', year)
+        if delta(e.notes, notes):
+            add_update('notes', notes)
+        if delta(e.private, private):
+            add_update('private', private)
+
+        # Cursor.executemany() takes a template and a list of tuples which it
+        # unpacks to execute against the DB. Set values are taken from the fields
+        # and values that add_update was called against, and they all have the
+        # event_id in their tuple so that the same event gets updated as much
+        # as it needs.
+        #
+        # I could have written just a bunch of functions to do this.
+        # But I didn't.
+        update_event_template = "UPDATE events SET ? = ? WHERE event_id = ?"
+        self._executemany(update_event_template, updates)
