@@ -4,15 +4,15 @@ CREATE TABLE calendars (
  share_url TEXT NULL
 );
 
-CREATE UNIQUE INDEX userID
-ON calendars (userID);
+CREATE UNIQUE INDEX user_id
+ON calendars (user_id);
 
 CREATE TABLE users (
  user_id INTEGER PRIMARY KEY,
  username TEXT NOT NULL,
- email TEXT NULL,
  pw_hash TEXT NOT NULL,
- calendar_id INTEGER NOT NULL
+ calendar_id INTEGER NOT NULL,
+ email TEXT NULL
 );
 
 CREATE TABLE events (
@@ -22,6 +22,6 @@ CREATE TABLE events (
  month INTEGER NOT NULL,
  day INTEGER NOT NULL,
  year INTEGER NULL,
- notes TEXT NULL
+ notes TEXT NULL,
+ private INTEGER DEFAULT 0
 );
-

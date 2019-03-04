@@ -5,14 +5,14 @@ from passlib.hash import pbkdf2_sha256 as pbkdf2
 
 class User:
     ''' Object to represent an entry from the users table. User's calendar
-        is retrieved based on the user's calendar_id'''
-    def __init__(self, user_id, username, email, pw_hash, calendar_id):
+        is retrieved based on the user's calendar_id. '''
+    def __init__(self, user_id, username, pw_hash, calendar_id, email=None):
         self.id = user_id
         self.username = username
-        self.email = email
         self.pw_hash = pw_hash
         self.calendar_id = calendar_id
         self.calendar: Calendar
+        self.email = email
 
     def verify_password(self, password):
         ''' Verifies password matches the password hash. '''
@@ -39,7 +39,8 @@ class Calendar:
 
 class Event:
     '''Represents an entry from the events table.'''
-    def __init__(self, event_id, calendar_id, title, month, day, year, notes):
+    def __init__(self, event_id, calendar_id, title, month, day, 
+                 year=None, notes=None, private=0):
         self.id = event_id
         self.calendar_id = calendar_id
         self.title = title
@@ -47,6 +48,7 @@ class Event:
         self.day = day
         self.year = year
         self.notes = notes
+        self.private = private # No BOOL type. Must be integer. 0 = False, 1 True
 
     def __repr__(self):
         return str("[{}, {}, {}, {}]".format(self.id, self.month, self.day, self.title))
