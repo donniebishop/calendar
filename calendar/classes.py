@@ -1,3 +1,5 @@
+from passlib.hash import pbkdf2_sha256 as pbkdf2
+
 class User():
     ''' Object to represent an entry from the users table. User's calendar
         is retrieved based on the user's calendar_id. '''
@@ -7,6 +9,17 @@ class User():
         self.pw_hash = pw_hash
         self.email = email
 
+    def change_password(self, password) -> None:
+        ''' Create a new pw_hash and replace the old hash. '''
+        self.pw_hash = pbkdf2.hash(str(password))
+
+    def change_email(self, email) -> None:
+        ''' Add or update email address associated with user. '''
+        self.email = email
+
+    def remove_email(self) -> None:
+        ''' Remove email associated with the user. '''
+        self.email = None
 
 class Calendar():
     '''Represents an entry from the calendars table. Events with a matching
@@ -54,6 +67,7 @@ class Event():
             self.year = int(year)
 
     def update_notes(self, notes=None):
+        ''' Update notes field of event. '''
         if notes:
             self.notes = str(notes)
 

@@ -132,7 +132,7 @@ class Database:
         return self._get_lastrowid()
 
     def insert_event(self, calendar_id, title, month, day,
-                  year=None, notes=None, private=None):
+                     year=None, notes=None, private=None):
         ''' Inserts a new Event into the events table. Returns event_id of the new Event. '''
         new_event_template = "INSERT INTO events \
                               (calendar_id, title, month, day, year, notes, private) \
@@ -143,8 +143,22 @@ class Database:
         return self._get_lastrowid()
 
     # Update methods
-    #def update_user(self):
-        #''' Update user attributesa in the database. '''
+    def update_user(self, user: User, username=None, pw_hash=None, email=None) -> None:
+        ''' Update user attributes in the database. '''
+        u, uid = user, user.id
+        updates: List[Tuple] = []
+        delta = lambda x, y: x != y
+        add_update = lambda item, value: updates.append((item, value, uid))
+        # maybe refactor the lambdas into their own function
+
+        if delta(u.username, username):
+            add_update('username', username)
+        if delta(u.pw_hash, pw_hash):
+            add_update('pw_hash', pw_hash)
+        if delta(u.email, email):
+            add_update('email', email)
+
+        self._executemany("UPDATE users SET ? = ? WHERE user_id = ?", updates)
 
     def update_event(self, event: Event, title=None, month=None,
                      day=None, year=None, notes=None, private=0) -> None:
@@ -182,10 +196,10 @@ class Database:
         #
         # I could have written just a bunch of functions to do this.
         # But I didn't.
-        update_event_template = "UPDATE events SET ? = ? WHERE event_id = ?"
-        self._executemany(update_event_template, updates)
+
+        self._executemany("UPDATE events SET ? = ? WHERE event_id = ?", updates)
 
     # Delete methods
-    def delete_user(self, user_id):
-        ''' Deletes a User from the database. '''
-        pass
+    #def delete_user(self, user_id):
+    #    ''' Deletes a User from the database. '''
+    #    pass
