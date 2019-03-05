@@ -3,7 +3,7 @@ from typing import List, Tuple
 from passlib.hash import pbkdf2_sha256 as pbkdf2
 
 # Custom imports
-from classes import User, Calendar, Event
+from .classes import User, Calendar, Event
 
 class Database:
     '''Object to represent SQLite database connection.'''
@@ -22,13 +22,11 @@ class Database:
     # "Private" methods
     def _get_connection(self) -> sqlite3.Connection:
         ''' Returns a Connection object to a SQLite database. '''
-        if not self.connection:
-            return sqlite3.connect(self.name)
+        return sqlite3.connect(self.name)
 
     def _get_cursor(self) -> sqlite3.Cursor:
         ''' Returns a Cursor object from the Connection object. '''
-        if self.connection and not self.cursor:
-            return self.connection.cursor()
+        return self.connection.cursor()
 
     def _get_result(self):
         ''' Return first cursor result. '''
@@ -45,13 +43,15 @@ class Database:
 
     def _execute(self, sql_template, sql_tuple) -> None:
         ''' Shortcut for self.cursor.execute() and self.cursor.commit() '''
-        self.cursor.execute(sql_template, sql_tuple)
-        self.cursor.commit()
+        if self.connection and self.cursor:
+            self.cursor.execute(sql_template, sql_tuple)
+            self.connection.commit()
 
     def _executemany(self, sql_template, sql_tuple_list) -> None:
         ''' Shortcut for self.cursor.executemany() and self.cursor.commit() '''
-        self.cursor.executemany(sql_template, sql_tuple_list)
-        self.cursor.commit()
+        if self.connection and self.cursor:
+            self.cursor.executemany(sql_template, sql_tuple_list)
+            self.connection.commit()
 
     def _close_all(self) -> None:
         ''' Close Cursor and Connection objects. '''
@@ -76,7 +76,7 @@ class Database:
     def get_user_by_id(self, user_id: int) -> User:
         '''Returns a User object for a given user_id. '''
         uid: Tuple = (user_id,)
-        self._execute("SELECT * FROM users WHERE username = ?", uid)
+        self._execute("SELECT * FROM users WHERE user_id = ?", uid)
         user = self._get_result()
 
         return User(*user)
@@ -88,6 +88,12 @@ class Database:
         calendar = self._get_result()
 
         return Calendar(*calendar)
+
+    def get_calendar_by_user_id(self, user_id: int) -> Calendar:
+        ''' Returns a Calendar object for a given user_id. '''
+        uid: Tuple = (user_id,)
+        self._execute("SELECT * FROM calendars WHERE user_id = ?", uid)
+        return Calendar(*self._get_result())
 
     def get_all_events(self, calendar_id: int) -> List[Event]:
         ''' Return list of Event objects that match the provided calendar_id. '''
@@ -114,6 +120,15 @@ class Database:
         new_user: Tuple = (username, password_hash, email)
 
         self._execute(new_user_template, new_user)
+        return self._get_lastrowid()
+
+    def new_calendar(self, user_id):
+        ''' Inserts a new Calendar into the calendars table. 
+            Returns the calendar_id of the new calendar. ''' 
+        new_calendar_template = "INSERT INTO calendars (user_id) VALUES (?)"
+        new_calendar: Tuple = (user_id,)
+
+        self._execute(new_calendar_template, new_calendar)
         return self._get_lastrowid()
 
     def new_event(self, calendar_id, title, month, day,

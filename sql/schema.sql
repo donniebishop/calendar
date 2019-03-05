@@ -11,7 +11,6 @@ CREATE TABLE users (
  user_id INTEGER PRIMARY KEY,
  username TEXT NOT NULL,
  pw_hash TEXT NOT NULL,
- calendar_id INTEGER NOT NULL,
  email TEXT NULL
 );
 

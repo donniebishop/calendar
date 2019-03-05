@@ -1,12 +1,10 @@
 class User():
     ''' Object to represent an entry from the users table. User's calendar
         is retrieved based on the user's calendar_id. '''
-    def __init__(self, user_id, username, pw_hash, calendar_id, email=None):
+    def __init__(self, user_id, username, pw_hash, email=None):
         self.id = user_id
         self.username = username
         self.pw_hash = pw_hash
-        self.calendar_id = calendar_id
-        self.calendar: Calendar
         self.email = email
 
 

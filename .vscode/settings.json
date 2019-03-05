@@ -4,5 +4,6 @@
         "--init-hook",
         "import sys; sys.path.append('/Users/donnie/code/calendar/calendar')"
     ],
+	"python.linting.pylintCategorySeverity.convention": "Hint",
     "python.linting.enabled": true
 }

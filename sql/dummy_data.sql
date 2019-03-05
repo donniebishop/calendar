@@ -1,9 +1,9 @@
 INSERT INTO users
- (username, pw_hash, calendar_id) 
+ (username, pw_hash) 
 VALUES
- ('bushidoboy', 'abcdefg', 1),
- ('covabishop', 'efgabcd', 2),
- ('afran646', 'bcdefga', 3);
+ ('bushidoboy', 'abcdefg'),
+ ('covabishop', 'efgabcd'),
+ ('afran646', 'bcdefga');
 
 INSERT INTO events
  (calendar_id, title, month, day, year)
