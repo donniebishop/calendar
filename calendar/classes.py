@@ -21,6 +21,7 @@ class User():
         ''' Remove email associated with the user. '''
         self.email = None
 
+
 class Calendar():
     '''Represents an entry from the calendars table. Events with a matching
        calendar_id are stored in the self.events list.'''
@@ -32,10 +33,6 @@ class Calendar():
     def generate_share_url(self):
         if not self.share_url:
             pass
-
-    # def new_event(self, db: Database, title, month, day, year=None, notes=None):
-    #     event_id = db.insert_event(self.id, title, month, day, year, notes)
-    #     db.get_event(event_id)
 
 
 class Event():
@@ -55,10 +52,12 @@ class Event():
         return str("[{}, {}, {}, {}]".format(self.id, self.month, self.day, self.title))
 
     def update_title(self, title=None):
+        ''' Update title field of Event. '''
         if title:
             self.title = str(title)
 
     def update_date(self, month=None, day=None, year=None):
+        ''' Update date components of an Event. '''
         if month:
             self.month = int(month)
         if day:

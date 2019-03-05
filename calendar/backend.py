@@ -69,25 +69,19 @@ class Database:
         '''Returns a User object for a given username. '''
         username: Tuple = (username,)
         self._execute("SELECT * FROM users WHERE username = ?", username)
-        user = self._get_result()
-
-        return User(*user)
+        return User(*self._get_result())
 
     def get_user_by_id(self, user_id: int) -> User:
         '''Returns a User object for a given user_id. '''
         uid: Tuple = (user_id,)
         self._execute("SELECT * FROM users WHERE user_id = ?", uid)
-        user = self._get_result()
-
-        return User(*user)
+        return User(*self._get_result())
 
     def get_calendar(self, calendar_id: int) -> Calendar:
         ''' Returns a Calendar object for a given calendar_id. '''
         cid: Tuple = (calendar_id,)
         self._execute("SELECT * FROM calendars WHERE calendar_id = ?", cid)
-        calendar = self._get_result()
-
-        return Calendar(*calendar)
+        return Calendar(*self._get_result())
 
     def get_calendar_by_user_id(self, user_id: int) -> Calendar:
         ''' Returns a Calendar object for a given user_id. '''
@@ -100,16 +94,13 @@ class Database:
         cid: Tuple = (calendar_id,)
         self._execute("SELECT * FROM events WHERE calendar_id = ?", cid)
         results = self._get_all_results()
-
-        return [Event(*event) for event in results]
+        return [Event(*event) for event in results] # list comps are so comfy unf
 
     def get_event(self, event_id: int) -> Event:
         ''' Return a single event, selected by event_id. '''
         eid: Tuple = (event_id,)
         self._execute("SELECT * FROM events WHERE event_id = ?", eid)
-        event = self._get_result()
-
-        return Event(*event)
+        return Event(*self._get_result())
 
     # Insert methods
     def insert_user(self, username, password, email=None):
