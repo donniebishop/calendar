@@ -112,7 +112,7 @@ class Database:
         return Event(*event)
 
     # Insert methods
-    def new_user(self, username, password, email=None):
+    def insert_user(self, username, password, email=None):
         ''' Inserts a new User into the users table. Returns the user_id of the new User. '''
         new_user_template = "INSERT INTO users (username, pw_hash, email) \
                              VALUES (?,?,?)"
@@ -122,7 +122,7 @@ class Database:
         self._execute(new_user_template, new_user)
         return self._get_lastrowid()
 
-    def new_calendar(self, user_id):
+    def insert_calendar(self, user_id):
         ''' Inserts a new Calendar into the calendars table. 
             Returns the calendar_id of the new calendar. ''' 
         new_calendar_template = "INSERT INTO calendars (user_id) VALUES (?)"
@@ -131,7 +131,7 @@ class Database:
         self._execute(new_calendar_template, new_calendar)
         return self._get_lastrowid()
 
-    def new_event(self, calendar_id, title, month, day,
+    def insert_event(self, calendar_id, title, month, day,
                   year=None, notes=None, private=None):
         ''' Inserts a new Event into the events table. Returns event_id of the new Event. '''
         new_event_template = "INSERT INTO events \
@@ -184,3 +184,8 @@ class Database:
         # But I didn't.
         update_event_template = "UPDATE events SET ? = ? WHERE event_id = ?"
         self._executemany(update_event_template, updates)
+
+    # Delete methods
+    def delete_user(self, user_id):
+        ''' Deletes a User from the database. '''
+        pass

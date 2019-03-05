@@ -15,8 +15,8 @@ class Session:
 
         if new_user:
             # Create new entries
-            uid = self.db.new_user(username, password)
-            cid = self.db.new_calendar(uid)
+            uid = self.db.insert_user(username, password)
+            cid = self.db.insert_calendar(uid)
             # return entries
             self.user = self.db.get_user_by_id(uid)
             self.calendar = self.db.get_calendar(cid)
@@ -33,7 +33,7 @@ class Session:
     def new_event(self, title, month, day, year=None, notes=None, private=0):
         ''' Create new event. '''
         cid = self.calendar.id
-        event_id = self.db.new_event(cid, title, month, day, year, notes, private)
+        event_id = self.db.insert_event(cid, title, month, day, year, notes, private)
         event = self.db.get_event(event_id)
         self.events.append(event)
 
