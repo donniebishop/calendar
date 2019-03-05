@@ -36,5 +36,16 @@ class Session:
         event_id = self.db.insert_event(cid, title, month, day, year, notes, private)
         event = self.db.get_event(event_id)
         self.events.append(event)
+    
+    # Update syncing
+
+    #def sync_user_changes(self):
+    #    ''' Sync changes to a User with the database. Takes a User. '''
+    #    self.db.update_user(self.user)
+
+    def sync_event_changes(self, event: Event):
+        ''' Sync changes to an event with the database. Takes an Event. '''
+        # I love that all the work in the backend makes this so simple here
+        self.db.update_event(event)
 
     #def update_event(title, month, day, year=None, notes=None, private=0):

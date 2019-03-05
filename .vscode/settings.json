@@ -2,6 +2,7 @@
     "python.linting.pylintEnabled": true,
     "python.linting.pylintArgs": [
         "--init-hook",
+        "--disable=unnecessary-lambda",
         "import sys; sys.path.append('/Users/donnie/code/calendar/calendar')"
     ],
 	"python.linting.pylintCategorySeverity.convention": "Hint",

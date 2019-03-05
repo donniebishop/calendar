@@ -151,44 +151,36 @@ class Database:
 
         self._executemany("UPDATE users SET ? = ? WHERE user_id = ?", updates)
 
-    def update_event(self, event: Event, title=None, month=None,
-                     day=None, year=None, notes=None, private=0) -> None:
+    def update_event(self, event: Event) -> None:
         ''' Takes an event and any event field updates, and updates the event
             in the database.'''
-        e = event
-        eid = event.id
-        updates: List[Tuple] = []
+
+        # Get event as how it's stored in the database, and make comparisons to the current
+        # values of event. Collect changes and update event
+        db_event = self.get_event(event.id)
+
         delta = lambda x, y: x != y
-        add_update = lambda item, value: updates.append((item, value, eid))
+        gen_tuple = lambda x: (x, event.id)
+        gen_template = lambda x: "UPDATE events SET {} = ? WHERE event_id = ?".format(x)
 
-        # For any field that has a non-default value, add_update adds a tuple
-        # of the field and the new value, as well as the event_id. Only added
-        # if the original value has changed
+        # God this is a mess
+        if delta(db_event.title, event.title):
+            self._execute(gen_template('title'), gen_tuple(event.title))
 
-        # There's probably a better way to iterate through these
-        if delta(e.title, title):
-            add_update('title', title)
-        if delta(e.month, month):
-            add_update('month', month)
-        if delta(e.day, day):
-            add_update('day', day)
-        if delta(e.year, year):
-            add_update('year', year)
-        if delta(e.notes, notes):
-            add_update('notes', notes)
-        if delta(e.private, private):
-            add_update('private', private)
+        if delta(db_event.month, event.month):
+            self._execute(gen_template('month'), gen_tuple(event.month))
 
-        # Cursor.executemany() takes a template and a list of tuples which it
-        # unpacks to execute against the DB. Set values are taken from the fields
-        # and values that add_update was called against, and they all have the
-        # event_id in their tuple so that the same event gets updated as much
-        # as it needs.
-        #
-        # I could have written just a bunch of functions to do this.
-        # But I didn't.
+        if delta(db_event.day, event.day):
+            self._execute(gen_template('day'), gen_tuple(event.day))
 
-        self._executemany("UPDATE events SET ? = ? WHERE event_id = ?", updates)
+        if delta(db_event.year, event.year):   # There's probably a better way to do this
+            self._execute(gen_template('year'), gen_tuple(event.year))
+
+        if delta(db_event.notes, event.notes):
+            self._execute(gen_template('notes'), gen_tuple(event.notes))
+
+        if delta(db_event.private, event.private):
+            self._execute(gen_template('private'), gen_tuple(event.private))
 
     # Delete methods
     #def delete_user(self, user_id):
