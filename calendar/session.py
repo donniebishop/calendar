@@ -4,6 +4,8 @@ from sqlite3 import Connection
 from .classes import Calendar, User, Event
 from .backend import Database
 
+# TODO Finish sync_user_changes once backend.Database.update_user() is fixed
+
 class Session:
     ''' Object to contain a session. '''
     def __init__(self, database, username, password, new_user=False):
@@ -48,4 +50,23 @@ class Session:
         # I love that all the work in the backend makes this so simple here
         self.db.update_event(event)
 
-    #def update_event(title, month, day, year=None, notes=None, private=0):
+    # Delete methods. Proceed with caution
+
+    def remove_event(self, event: Event):
+        ''' Removes an event from the database and from self.events '''
+        event_index = self.events.index(event)
+        self.db.delete_event(event)
+        self.events.pop(event_index)
+
+    def delete_account(self, confirm=False):
+        ''' Deletes user account and all data associated with it. Confirm required. '''
+        if confirm:
+            # Delete from database in reverse order
+            self.db.delete_calendar_events(self.calendar)
+            self.db.delete_calendar(self.calendar)
+            self.db.delete_user(self.user)
+            
+            # Delete object attributes
+            delattr(self, 'user')
+            delattr(self, 'calendar')
+            delattr(self, 'events')

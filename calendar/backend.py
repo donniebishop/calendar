@@ -5,6 +5,8 @@ from passlib.hash import pbkdf2_sha256 as pbkdf2
 # Custom imports
 from .classes import User, Calendar, Event
 
+# TODO: Fix update_user to match logic of update_event
+
 class Database:
     '''Object to represent SQLite database connection.'''
     def __init__(self, db_name: str):
@@ -183,6 +185,22 @@ class Database:
             self._execute(gen_template('private'), gen_tuple(event.private))
 
     # Delete methods
-    #def delete_user(self, user_id):
-    #    ''' Deletes a User from the database. '''
-    #    pass
+    def delete_user(self, user: User) -> None:
+        ''' Deletes a User from the database. '''
+        uid = (user.id,)
+        self._execute("DELETE FROM users WHERE user_id = ? LIMIT 1", uid)
+
+    def delete_calendar(self, calendar: Calendar) -> None:
+        ''' Deletes a Calendar from the database. '''
+        cid = (calendar.id,)
+        self._execute("DELETE FROM calendars WHERE calendar_id = ? LIMIT 1", cid)
+
+    def delete_event(self, event: Event) -> None:
+        ''' Deletes an Event from the database. '''
+        eid = (event.id,)
+        self._execute("DELETE FROM events WHERE event_id = ? LIMIT 1", eid)
+
+    def delete_calendar_events(self, calendar: Calendar) -> None:
+        ''' Deletes all of a Calendar's Events from the database. '''
+        cid = (calendar.id,)
+        self._execute("DELETE FROM events WHERE calendar_id = ?", cid)
