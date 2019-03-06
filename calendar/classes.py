@@ -35,13 +35,13 @@ class Calendar():
         ''' Generate a share URL for a Calendar and set self.share_url '''
         # Will likely create a function to process url.com/c/{share_url} to map to the
         # corresponding value in the DB and return that calendar
-        if not self.share_url:
-            chars = string.ascii_letters + string.digits
-            self.share_url = ''.join(random.choice(chars) for _ in range(length))
+        chars = string.ascii_letters + string.digits
+        self.share_url = ''.join(random.choice(chars) for _ in range(length))
 
     def get_share_url(self) -> str:
         ''' Return full share URl for Calendar. ''' 
-        return 'url.com/c/{}'.format(self.share_url)
+        if self.share_url:
+            return 'url.com/c/{}'.format(self.share_url)
 
     def remove_share_url(self):
         ''' Removes share_url for a Calendar. '''
