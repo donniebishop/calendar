@@ -159,7 +159,10 @@ dmypy.json
 # Ignore all local history of files
 .history
 
+# End of https://www.gitignore.io/api/macos,python,visualstudiocode
+
 ### SQLite ###
 *.db
 
-# End of https://www.gitignore.io/api/macos,python,visualstudiocode
+### Custom ###
+test.py

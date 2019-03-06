@@ -1,10 +1,6 @@
 {
+    "python.linting.pylintPath": "/Users/donnie/.local/share/virtualenvs/calendar-McMlBtAy/bin/pylint",
+    "python.venvPath": "/Users/donnie/.local/share/virtualenvs",
     "python.linting.pylintEnabled": true,
-    "python.linting.pylintArgs": [
-        "--init-hook",
-        "--disable=unnecessary-lambda",
-        "import sys; sys.path.append('/Users/donnie/code/calendar/calendar')"
-    ],
-	"python.linting.pylintCategorySeverity.convention": "Hint",
     "python.linting.enabled": true
 }
