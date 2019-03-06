@@ -137,15 +137,15 @@ class Database:
         return self._get_lastrowid()
 
     def insert_event(self, calendar_id, title, month, day,
-                     year=None, notes=None, private=None):
+                     year=None, notes=None, private=None) -> None:
         ''' Inserts a new Event into the events table. Returns event_id of the new Event. '''
         new_event_template = "INSERT INTO events \
                               (calendar_id, title, month, day, year, notes, private) \
                               VALUES (?,?,?,?,?,?,?)"
         new_event: Tuple = (calendar_id, title, month, day, year, notes, private)
 
+        # No need to get Event's row_id since we'll just reload Session.events
         self._execute(new_event_template, new_event)
-        return self._get_lastrowid()
 
     # Update methods
     def update_user(self, user: User, username=None, pw_hash=None, email=None) -> None:

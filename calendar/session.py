@@ -51,9 +51,18 @@ class Session:
     def new_event(self, title, month, day, year=None, notes=None, private=0):
         ''' Create new event. '''
         cid = self.calendar.id
-        event_id = self.db.insert_event(cid, title, month, day, year, notes, private)
-        event = self.db.get_event(event_id)
-        self.events.append(event)
+        self.db.insert_event(cid, title, month, day, year, notes, private)
+        self.reload_events() # sync back up with database
+
+    # Read methods
+
+    def get_month_events(self, month: int) -> List[Event]:
+        ''' Select all entries in self.events in the same month '''
+        return [event for event in self.events if event.month == month]
+
+    def reload_events(self) -> None:
+        ''' Reload self.events with any new/updated Events. '''
+        self.events = self.db.get_all_events(self.calendar.id)
     
     # Update syncing
 
@@ -63,8 +72,8 @@ class Session:
 
     def sync_event_changes(self, event: Event):
         ''' Sync changes to an event with the database. Takes an Event. '''
-        # I love that all the work in the backend makes this so simple here
         self.db.update_event(event)
+        self.reload_events() # sync any changes with self.events
 
     # Delete methods. Proceed with caution
 
@@ -99,3 +108,7 @@ class ShareSession:
         self.db = Database(database)
         self.calendar = self.db.get_calendar_by_share_url(share_url)
         self.events = self.db.get_all_events(self.calendar.id, strip_private=True)
+
+    def get_month_events(self, month: int) -> List[Event]:
+        ''' Select all entries in self.events in the same month '''
+        return [event for event in self.events if event.month == month]
