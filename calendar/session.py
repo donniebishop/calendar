@@ -1,10 +1,13 @@
 from typing import List
 from sqlite3 import Connection
+from sqlite3 import Error as SqliteError
 
 from .classes import Calendar, User, Event
 from .backend import Database
 
-# TODO Finish sync_user_changes once backend.Database.update_user() is fixed
+# TODO:
+# * Finish sync_user_changes once backend.Database.update_user() is fixed
+# * Add read-only functions to ShareSession
 
 class Session:
     ''' Object to contain a session. '''
@@ -32,6 +35,19 @@ class Session:
         pw_hash = self.db.get_user(username).pw_hash
         return self.db.verify_password(password, pw_hash)
 
+    def new_share_url(self):
+        ''' Generate a new share URL for a Calendar. Calendars accessed through the 
+            share URL will have all private events stripped. '''
+        self.calendar.generate_share_url()
+
+        # If the update doesn't meet the UNIQUE constraint on share_url, generate a new one
+        while True:
+            try:
+                self.db.update_calendar_share_url(self.calendar)
+                break
+            except SqliteError:
+                self.calendar.generate_share_url()
+
     def new_event(self, title, month, day, year=None, notes=None, private=0):
         ''' Create new event. '''
         cid = self.calendar.id
@@ -52,6 +68,12 @@ class Session:
 
     # Delete methods. Proceed with caution
 
+    def remove_share_url(self):
+        ''' Remove share URL for Calendar. '''
+        # We can reuse the db method cuz it updates the value to NULL. Sweet
+        self.calendar.remove_share_url()
+        self.db.update_calendar_share_url(self.calendar)
+
     def remove_event(self, event: Event):
         ''' Removes an event from the database and from self.events '''
         event_index = self.events.index(event)
@@ -70,3 +92,10 @@ class Session:
             delattr(self, 'user')
             delattr(self, 'calendar')
             delattr(self, 'events')
+
+
+class ShareSession:
+    def __init__(self, database, share_url):
+        self.db = Database(database)
+        self.calendar = self.db.get_calendar_by_share_url(share_url)
+        self.events = self.db.get_all_events(self.calendar.id, strip_private=True)

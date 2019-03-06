@@ -91,10 +91,22 @@ class Database:
         self._execute("SELECT * FROM calendars WHERE user_id = ?", uid)
         return Calendar(*self._get_result())
 
-    def get_all_events(self, calendar_id: int) -> List[Event]:
-        ''' Return list of Event objects that match the provided calendar_id. '''
+    def get_calendar_by_share_url(self, share_url: str) -> Calendar:
+        ''' Returns a Calendar object for a given user_id. '''
+        s_url: Tuple = (str(share_url))
+        self._execute("SELECT * FROM calendars WHERE share_url = ?", s_url)
+        return Calendar(*self._get_result())
+
+    def get_all_events(self, calendar_id: int, strip_private=False) -> List[Event]:
+        ''' Return list of Event objects that match the provided calendar_id. 
+            If strip_private is True, all non-private events will be returned. '''
         cid: Tuple = (calendar_id,)
-        self._execute("SELECT * FROM events WHERE calendar_id = ?", cid)
+
+        if strip_private:
+            self._execute("SELECT * FROM events WHERE calendar_id = ? AND private = 0", cid)
+        else:
+            self._execute("SELECT * FROM events WHERE calendar_id = ?", cid)
+
         results = self._get_all_results()
         return [Event(*event) for event in results] # list comps are so comfy unf
 
@@ -152,6 +164,11 @@ class Database:
             add_update('email', email)
 
         self._executemany("UPDATE users SET ? = ? WHERE user_id = ?", updates)
+
+    def update_calendar_share_url(self, calendar: Calendar):
+        ''' Updates share_url value of a Calendar. '''
+        c_tuple = (calendar.share_url, calendar.id)
+        self._execute("UPDATE calendars SET share_url = ? WHERE calendar_id = ?", c_tuple)
 
     def update_event(self, event: Event) -> None:
         ''' Takes an event and any event field updates, and updates the event
