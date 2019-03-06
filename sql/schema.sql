@@ -1,17 +1,16 @@
-CREATE TABLE calendars (
- calendar_id INTEGER PRIMARY KEY,
- user_id INTEGER NOT NULL,
- share_url TEXT NULL
-);
-
-CREATE UNIQUE INDEX user_id
-ON calendars (user_id);
-
 CREATE TABLE users (
  user_id INTEGER PRIMARY KEY,
  username TEXT NOT NULL,
  pw_hash TEXT NOT NULL,
- email TEXT NULL
+ email TEXT NULL,
+ UNIQUE ( username, email )
+);
+
+CREATE TABLE calendars (
+ calendar_id INTEGER PRIMARY KEY,
+ user_id INTEGER NOT NULL,
+ share_url TEXT NULL,
+ UNIQUE ( user_id, share_url )
 );
 
 CREATE TABLE events (
