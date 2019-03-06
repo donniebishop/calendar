@@ -68,16 +68,23 @@ class Database:
         return pbkdf2.verify(password, pw_hash)
 
     def get_user(self, username: str) -> User:
-        '''Returns a User object for a given username. '''
+        ''' Returns a User object for a given username. '''
         username: Tuple = (username,)
         self._execute("SELECT * FROM users WHERE username = ?", username)
         return User(*self._get_result())
 
     def get_user_by_id(self, user_id: int) -> User:
-        '''Returns a User object for a given user_id. '''
+        ''' Returns a User object for a given user_id. '''
         uid: Tuple = (user_id,)
         self._execute("SELECT * FROM users WHERE user_id = ?", uid)
         return User(*self._get_result())
+
+    def get_username_by_id(self, user_id: int) -> str:
+        ''' Returns the username associated with the user_id. '''
+        uid: Tuple = (user_id,)
+        self._execute("SELECT * FROM users WHERE user_id = ?", uid)
+        user = User(*self._get_result())
+        return user.username
 
     def get_calendar(self, calendar_id: int) -> Calendar:
         ''' Returns a Calendar object for a given calendar_id. '''

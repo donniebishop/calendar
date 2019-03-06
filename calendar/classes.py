@@ -39,6 +39,10 @@ class Calendar():
             chars = string.ascii_letters + string.digits
             self.share_url = ''.join(random.choice(chars) for _ in range(length))
 
+    def get_share_url(self) -> str:
+        ''' Return full share URl for Calendar. ''' 
+        return 'url.com/c/{}'.format(self.share_url)
+
     def remove_share_url(self):
         ''' Removes share_url for a Calendar. '''
         self.share_url = None
