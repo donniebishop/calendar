@@ -1,6 +1,10 @@
 import random, string
 from passlib.hash import pbkdf2_sha256 as pbkdf2
 
+# TODO:
+# * Remove methods from these classes as these classes should be strictly Data Transfer Objects.
+#   Move methods to each classes' respective DAO in backend.py 
+
 class User():
     ''' Object to represent an entry from the users table. User's calendar
         is retrieved based on the user's calendar_id. '''

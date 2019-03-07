@@ -1,4 +1,5 @@
-import sqlite3
+from sqlite3 import connect as connect_db
+from sqlite3 import Connection, Cursor
 from typing import List, Tuple
 from passlib.hash import pbkdf2_sha256 as pbkdf2
 
@@ -7,62 +8,57 @@ from .classes import User, Calendar, Event
 
 # TODO: Fix update_user to match logic of update_event
 
-class Database:
-    '''Object to represent SQLite database connection.'''
-    def __init__(self, db_name: str):
-        self.name = db_name
-        self.connection: sqlite3.Connection
-        self.cursor: sqlite3.Cursor
+class Repository:
+    ''' Repository acts as the interface to the database. User methods are available through 
+        the self.users Data Access Object (DAO), calendar methods through self.calendars, 
+        and event methods through self.events '''
+    def __init__(self, database: str):
+        self._connection = connect_db(database)
+        self.users = UserDAO(self._connection)
+        self.calendars = CalendarDAO(self._connection)
+        self.events = EventDAO(self._connection)
 
-        # Initialize connection and cursor
-        try:
-            self.connection = self._get_connection()
-            self.cursor = self._get_cursor()
-        except ConnectionError:
-            raise ConnectionError()
+    def _close(self):
+        ''' Commit all changes and close out connection to Database. '''
+        self._connection.commit()
+        self._connection.close()
+
+
+class BaseDAO:
+    ''' Generic Data Access Object (DAO). Provides wrappers to SQL functions
+        and all DAO classes inherit from this '''
+    def __init__(self, connection: Connection):
+        self._connection = connection
+        self._cursor = self._connection.cursor()
 
     # "Private" methods
-    def _get_connection(self) -> sqlite3.Connection:
-        ''' Returns a Connection object to a SQLite database. '''
-        return sqlite3.connect(self.name)
-
-    def _get_cursor(self) -> sqlite3.Cursor:
+    def _get_cursor(self) -> Cursor:
         ''' Returns a Cursor object from the Connection object. '''
-        return self.connection.cursor()
+        return self._connection.cursor()
 
     def _get_result(self):
         ''' Return first cursor result. '''
-        if self.connection and self.cursor:
-            return self.cursor.fetchone()
+        return self._cursor.fetchone()
 
     def _get_all_results(self):
         ''' Return all cursor results. '''
-        if self.connection and self.cursor:
-            return self.cursor.fetchall()
+        return self._cursor.fetchall()
 
     def _get_lastrowid(self):
-        return self.cursor.lastrowid
+        return self._cursor.lastrowid
 
     def _execute(self, sql_template, sql_tuple) -> None:
         ''' Shortcut for self.cursor.execute() and self.cursor.commit() '''
-        if self.connection and self.cursor:
-            self.cursor.execute(sql_template, sql_tuple)
-            self.connection.commit()
+        self._cursor.execute(sql_template, sql_tuple)
 
     def _executemany(self, sql_template, sql_tuple_list) -> None:
         ''' Shortcut for self.cursor.executemany() and self.cursor.commit() '''
-        if self.connection and self.cursor:
-            self.cursor.executemany(sql_template, sql_tuple_list)
-            self.connection.commit()
+        self._cursor.executemany(sql_template, sql_tuple_list)
 
-    def _close_all(self) -> None:
-        ''' Close Cursor and Connection objects. '''
-        if self.cursor:
-            self.cursor.close()
-        if self.connection:
-            self.connection.close()
 
-    # Select methods
+class UserDAO(BaseDAO):
+    ''' Data Access Object for the users table in the database. '''
+
     def verify_password(self, password, pw_hash) -> bool:
         ''' Verifies password matches the password hash. '''
         return pbkdf2.verify(password, pw_hash)
@@ -86,6 +82,41 @@ class Database:
         user = User(*self._get_result())
         return user.username
 
+    def insert_user(self, username, password, email=None):
+        ''' Inserts a new User into the users table. '''
+        new_user_template = "INSERT INTO users (username, pw_hash, email) \
+                             VALUES (?,?,?)"
+        password_hash = pbkdf2.hash(str(password))
+        new_user: Tuple = (username, password_hash, email)
+
+        self._execute(new_user_template, new_user)
+
+    def update_user(self, user: User, username=None, pw_hash=None, email=None) -> None:
+        ''' Update user attributes in the database. '''
+        u, uid = user, user.id
+        updates: List[Tuple] = []
+        delta = lambda x, y: x != y
+        add_update = lambda item, value: updates.append((item, value, uid))
+        # maybe refactor the lambdas into their own function
+
+        if delta(u.username, username):
+            add_update('username', username)
+        if delta(u.pw_hash, pw_hash):
+            add_update('pw_hash', pw_hash)
+        if delta(u.email, email):
+            add_update('email', email)
+
+        self._executemany("UPDATE users SET ? = ? WHERE user_id = ?", updates)
+
+    def delete_user(self, user: User) -> None:
+        ''' Deletes a User from the database. '''
+        uid = (user.id,)
+        self._execute("DELETE FROM users WHERE user_id = ? LIMIT 1", uid)
+
+
+class CalendarDAO(BaseDAO):
+    ''' Data Access Object for calendars table in the database. '''
+
     def get_calendar(self, calendar_id: int) -> Calendar:
         ''' Returns a Calendar object for a given calendar_id. '''
         cid: Tuple = (calendar_id,)
@@ -103,6 +134,29 @@ class Database:
         s_url: Tuple = (str(share_url))
         self._execute("SELECT * FROM calendars WHERE share_url = ?", s_url)
         return Calendar(*self._get_result())
+
+    def insert_calendar(self, user_id):
+        ''' Inserts a new Calendar into the calendars table. 
+            Returns the calendar_id of the new calendar. ''' 
+        new_calendar_template = "INSERT INTO calendars (user_id) VALUES (?)"
+        new_calendar: Tuple = (user_id,)
+
+        self._execute(new_calendar_template, new_calendar)
+        return self._get_lastrowid()
+
+    def update_calendar_share_url(self, calendar: Calendar):
+        ''' Updates share_url value of a Calendar. '''
+        c_tuple = (calendar.share_url, calendar.id)
+        self._execute("UPDATE calendars SET share_url = ? WHERE calendar_id = ?", c_tuple)
+
+    def delete_calendar(self, calendar: Calendar) -> None:
+        ''' Deletes a Calendar from the database. '''
+        cid = (calendar.id,)
+        self._execute("DELETE FROM calendars WHERE calendar_id = ? LIMIT 1", cid)
+
+
+class EventDAO(BaseDAO):
+    ''' Data Access Object for events table in the database.'''
 
     def get_all_events(self, calendar_id: int, strip_private=False) -> List[Event]:
         ''' Return list of Event objects that match the provided calendar_id. 
@@ -123,26 +177,6 @@ class Database:
         self._execute("SELECT * FROM events WHERE event_id = ?", eid)
         return Event(*self._get_result())
 
-    # Insert methods
-    def insert_user(self, username, password, email=None):
-        ''' Inserts a new User into the users table. Returns the user_id of the new User. '''
-        new_user_template = "INSERT INTO users (username, pw_hash, email) \
-                             VALUES (?,?,?)"
-        password_hash = pbkdf2.hash(str(password))
-        new_user: Tuple = (username, password_hash, email)
-
-        self._execute(new_user_template, new_user)
-        return self._get_lastrowid()
-
-    def insert_calendar(self, user_id):
-        ''' Inserts a new Calendar into the calendars table. 
-            Returns the calendar_id of the new calendar. ''' 
-        new_calendar_template = "INSERT INTO calendars (user_id) VALUES (?)"
-        new_calendar: Tuple = (user_id,)
-
-        self._execute(new_calendar_template, new_calendar)
-        return self._get_lastrowid()
-
     def insert_event(self, calendar_id, title, month, day,
                      year=None, notes=None, private=None) -> None:
         ''' Inserts a new Event into the events table. Returns event_id of the new Event. '''
@@ -154,33 +188,9 @@ class Database:
         # No need to get Event's row_id since we'll just reload Session.events
         self._execute(new_event_template, new_event)
 
-    # Update methods
-    def update_user(self, user: User, username=None, pw_hash=None, email=None) -> None:
-        ''' Update user attributes in the database. '''
-        u, uid = user, user.id
-        updates: List[Tuple] = []
-        delta = lambda x, y: x != y
-        add_update = lambda item, value: updates.append((item, value, uid))
-        # maybe refactor the lambdas into their own function
-
-        if delta(u.username, username):
-            add_update('username', username)
-        if delta(u.pw_hash, pw_hash):
-            add_update('pw_hash', pw_hash)
-        if delta(u.email, email):
-            add_update('email', email)
-
-        self._executemany("UPDATE users SET ? = ? WHERE user_id = ?", updates)
-
-    def update_calendar_share_url(self, calendar: Calendar):
-        ''' Updates share_url value of a Calendar. '''
-        c_tuple = (calendar.share_url, calendar.id)
-        self._execute("UPDATE calendars SET share_url = ? WHERE calendar_id = ?", c_tuple)
-
     def update_event(self, event: Event) -> None:
         ''' Takes an event and any event field updates, and updates the event
             in the database.'''
-
         # Get event as how it's stored in the database, and make comparisons to the current
         # values of event. Collect changes and update event
         db_event = self.get_event(event.id)
@@ -199,7 +209,7 @@ class Database:
         if delta(db_event.day, event.day):
             self._execute(gen_template('day'), gen_tuple(event.day))
 
-        if delta(db_event.year, event.year):   # There's probably a better way to do this
+        if delta(db_event.year, event.year):
             self._execute(gen_template('year'), gen_tuple(event.year))
 
         if delta(db_event.notes, event.notes):
@@ -207,17 +217,6 @@ class Database:
 
         if delta(db_event.private, event.private):
             self._execute(gen_template('private'), gen_tuple(event.private))
-
-    # Delete methods
-    def delete_user(self, user: User) -> None:
-        ''' Deletes a User from the database. '''
-        uid = (user.id,)
-        self._execute("DELETE FROM users WHERE user_id = ? LIMIT 1", uid)
-
-    def delete_calendar(self, calendar: Calendar) -> None:
-        ''' Deletes a Calendar from the database. '''
-        cid = (calendar.id,)
-        self._execute("DELETE FROM calendars WHERE calendar_id = ? LIMIT 1", cid)
 
     def delete_event(self, event: Event) -> None:
         ''' Deletes an Event from the database. '''
