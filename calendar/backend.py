@@ -17,11 +17,19 @@ class Repository:
         self.users = UserDAO(self._connection)
         self.calendars = CalendarDAO(self._connection)
         self.events = EventDAO(self._connection)
+        self.create_tables()
 
     def _close(self):
         ''' Commit all changes and close out connection to Database. '''
         self._connection.commit()
         self._connection.close()
+
+    def create_tables(self):
+        ''' Creates tables in the database. schema.sql uses IF NOT EXISTS so it only creates tables
+            if they don't already exist in the databse. '''
+        with open('calendar/sql/schema.sql') as schema:
+            create_table_script = ''.join(schema.readlines())
+            self._connection.executescript(create_table_script)
 
 
 class BaseDAO:
