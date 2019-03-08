@@ -11,14 +11,14 @@ from .backend import Repository
 
 class Session:
     ''' Object to contain a session. '''
-    def __init__(self, database, username, password):
+    def __init__(self, database):
         self.repo = Repository(database)
         self.user: User
         self.calendar: Calendar
         self.events: List[Event]
 
     def login(self, username, password):
-        user = self.repo.users.get_user(username).pw_hash
+        user = self.repo.users.get_user(username)
         pw_hash = user.pw_hash
         login_success = self.repo.users.verify_password(password, pw_hash)
 

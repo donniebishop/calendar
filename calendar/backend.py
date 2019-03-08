@@ -47,12 +47,15 @@ class BaseDAO:
     def _get_lastrowid(self):
         return self._cursor.lastrowid
 
-    def _execute(self, sql_template, sql_tuple) -> None:
-        ''' Shortcut for self.cursor.execute() and self.cursor.commit() '''
-        self._cursor.execute(sql_template, sql_tuple)
+    def _execute(self, sql_template, sql_tuple=None) -> None:
+        ''' Shortcut for self.cursor.execute() '''
+        if sql_tuple:
+            self._cursor.execute(sql_template, sql_tuple)
+        else:
+            self._cursor.execute(sql_template)
 
     def _executemany(self, sql_template, sql_tuple_list) -> None:
-        ''' Shortcut for self.cursor.executemany() and self.cursor.commit() '''
+        ''' Shortcut for self.cursor.executemany() '''
         self._cursor.executemany(sql_template, sql_tuple_list)
 
 
@@ -91,22 +94,25 @@ class UserDAO(BaseDAO):
 
         self._execute(new_user_template, new_user)
 
-    def update_user(self, user: User, username=None, pw_hash=None, email=None) -> None:
+    def update_user(self, user: User) -> None:
         ''' Update user attributes in the database. '''
-        u, uid = user, user.id
-        updates: List[Tuple] = []
+        db_user = self.get_user_by_id(user.id)
+        updates = []
         delta = lambda x, y: x != y
-        add_update = lambda item, value: updates.append((item, value, uid))
-        # maybe refactor the lambdas into their own function
 
-        if delta(u.username, username):
-            add_update('username', username)
-        if delta(u.pw_hash, pw_hash):
-            add_update('pw_hash', pw_hash)
-        if delta(u.email, email):
-            add_update('email', email)
+        def add_update(field, value) -> str:
+            update = "UPDATE users SET {} = '{}' where user_id = {}".format(field, value, user.id)
+            updates.append(update)
 
-        self._executemany("UPDATE users SET ? = ? WHERE user_id = ?", updates)
+        if delta(db_user.username, user.username):
+            add_update('username', user.username)
+        if delta(db_user.pw_hash, user.pw_hash):
+            add_update('pw_hash', user.pw_hash)
+        if delta(db_user.email, user.email):
+            add_update('email', user.email)
+
+        for update in updates:
+            self._execute(update)
 
     def delete_user(self, user: User) -> None:
         ''' Deletes a User from the database. '''
@@ -194,29 +200,32 @@ class EventDAO(BaseDAO):
         # Get event as how it's stored in the database, and make comparisons to the current
         # values of event. Collect changes and update event
         db_event = self.get_event(event.id)
-
         delta = lambda x, y: x != y
-        gen_tuple = lambda x: (x, event.id)
-        gen_template = lambda x: "UPDATE events SET {} = ? WHERE event_id = ?".format(x)
+        updates = []
+
+        def add_update(field, value) -> str:
+            if type(value) == int:
+                update = "UPDATE events SET {} = {} where event_id = {}".format(field, value, event.id)
+            else:
+                update = "UPDATE events SET {} = '{}' where event_id = {}".format(field, value, event.id)
+            updates.append(update)
 
         # God this is a mess
         if delta(db_event.title, event.title):
-            self._execute(gen_template('title'), gen_tuple(event.title))
-
+            add_update('title', event.title)
         if delta(db_event.month, event.month):
-            self._execute(gen_template('month'), gen_tuple(event.month))
-
+            add_update('month', event.month)
         if delta(db_event.day, event.day):
-            self._execute(gen_template('day'), gen_tuple(event.day))
-
+            add_update('day', event.day)
         if delta(db_event.year, event.year):
-            self._execute(gen_template('year'), gen_tuple(event.year))
-
+            add_update('year', event.year)
         if delta(db_event.notes, event.notes):
-            self._execute(gen_template('notes'), gen_tuple(event.notes))
-
+            add_update('notes', event.notes)
         if delta(db_event.private, event.private):
-            self._execute(gen_template('private'), gen_tuple(event.private))
+            add_update('private', event.private)
+
+        for update in updates:
+            self._execute(update)
 
     def delete_event(self, event: Event) -> None:
         ''' Deletes an Event from the database. '''
