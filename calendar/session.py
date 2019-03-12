@@ -4,6 +4,7 @@ from sqlite3 import Error as SqliteError
 
 from .classes import Calendar, User, Event
 from .backend import Repository
+from .exceptions import *
 
 # TODO:
 # * Finish sync_user_changes once backend.Database.update_user() is fixed
@@ -26,9 +27,12 @@ class Session:
             self.user = user
             self.calendar = self.repo.calendars.get_calendar_by_user_id(self.user.id)
             self.events = self.repo.events.get_all_events(self.calendar.id)
+        else:
+            raise LoginFailureException
 
     def new_user(self, username, password, email=None):
         self.repo.users.insert_user(username, password, email)
+        self.repo.calendars.insert_calendar(self.user.id)
 
     def new_share_url(self):
         ''' Generate a new share URL for a Calendar. Calendars accessed through the 

@@ -5,6 +5,7 @@ from passlib.hash import pbkdf2_sha256 as pbkdf2
 
 # Custom imports
 from .classes import User, Calendar, Event
+from .exceptions import UserNotFoundException
 
 # TODO: Fix update_user to match logic of update_event
 
@@ -69,6 +70,14 @@ class BaseDAO:
 
 class UserDAO(BaseDAO):
     ''' Data Access Object for the users table in the database. '''
+    def _return_user(self) -> User:
+        ''' Takes input from self._get_result() and tries to return a User.
+            If result is empty, raises, UserNotFoundException'''
+        result = self._get_result()
+        if result == None:
+            raise UserNotFoundException
+        else:
+            return User(*result)
 
     def verify_password(self, password, pw_hash) -> bool:
         ''' Verifies password matches the password hash. '''
@@ -78,13 +87,13 @@ class UserDAO(BaseDAO):
         ''' Returns a User object for a given username. '''
         username: Tuple = (username,)
         self._execute("SELECT * FROM users WHERE username = ?", username)
-        return User(*self._get_result())
+        return self._return_user()
 
     def get_user_by_id(self, user_id: int) -> User:
         ''' Returns a User object for a given user_id. '''
         uid: Tuple = (user_id,)
         self._execute("SELECT * FROM users WHERE user_id = ?", uid)
-        return User(*self._get_result())
+        return self._return_user()
 
     def get_username_by_id(self, user_id: int) -> str:
         ''' Returns the username associated with the user_id. '''
