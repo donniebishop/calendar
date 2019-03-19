@@ -2,9 +2,9 @@ from typing import List
 from sqlite3 import Connection
 from sqlite3 import Error as SqliteError
 
-from .classes import Calendar, User, Event
-from .backend import Repository
-from .exceptions import *
+from classes import Calendar, User, Event
+from backend import Repository
+from exceptions import *
 
 # TODO:
 # * Finish sync_user_changes once backend.Database.update_user() is fixed

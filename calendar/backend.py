@@ -4,8 +4,8 @@ from typing import List, Tuple
 from passlib.hash import pbkdf2_sha256 as pbkdf2
 
 # Custom imports
-from .classes import User, Calendar, Event
-from .exceptions import UserNotFoundException
+from classes import User, Calendar, Event
+from exceptions import UserNotFoundException
 
 # TODO: Fix update_user to match logic of update_event
 
@@ -14,7 +14,7 @@ class Repository:
         the self.users Data Access Object (DAO), calendar methods through self.calendars, 
         and event methods through self.events '''
     def __init__(self, database: str):
-        self._connection = connect_db(database)
+        self._connection = connect_db(database, check_same_thread=False)
         self.users = UserDAO(self._connection)
         self.calendars = CalendarDAO(self._connection)
         self.events = EventDAO(self._connection)

@@ -7,3 +7,7 @@ class UserNotFoundException(Exception):
 class LoginFailureException(Exception):
     ''' Password verification failed. '''
     pass
+
+class EventNotFoundException(Exception):
+    ''' Event was not found in the database. '''
+    pass
